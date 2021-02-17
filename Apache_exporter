@@ -1,0 +1,51 @@
+1) Instalar curl
+
+sudo apt update && sudo apt install curl
+
+
+2) Descarga apache exporter
+
+curl -s https://api.github.com/repos/Lusitaniae/apache_exporter/releases/latest   | grep browser_download_url   | grep linux-amd64 | cut -d '"' -f 4 | wget -qi -
+
+
+3) Extraer copiar y dar permisos
+
+tar xvf apache_exporter-*.linux-amd64.tar.gz
+sudo cp apache_exporter-*.linux-amd64/apache_exporter /usr/local/bin
+sudo chmod +x /usr/local/bin/apache_exporter
+
+
+4) Try its executable
+
+apache_exporter --version
+
+5) Crear servicio
+
+sudo groupadd --system prometheus
+sudo useradd -s /sbin/nologin --system -g prometheus prometheus
+sudo vim /etc/systemd/system/apache_exporter.service
+
+6) Paste service
+
+[Unit]
+Description=Prometheus
+Documentation=https://github.com/Lusitaniae/apache_exporter
+Wants=network-online.target
+After=network-online.target
+
+[Service]
+Type=simple
+User=prometheus
+Group=prometheus
+ExecReload=/bin/kill -HUP $MAINPID
+ExecStart=/usr/local/bin/apache_exporter \
+  --insecure \
+  --scrape_uri=http://localhost/server-status/?auto \
+  --telemetry.address=0.0.0.0:9117 \
+  --telemetry.endpoint=/metrics
+
+SyslogIdentifier=apache_exporter
+Restart=always
+
+[Install]
+WantedBy=multi-user.target
